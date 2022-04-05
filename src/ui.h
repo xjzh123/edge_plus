@@ -480,6 +480,8 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         //EditByJN20220405
         if (wParam == WM_RBUTTONUP)
         {
+           if (!IsPressed(VK_SHIFT))
+           {
             HWND hwnd = WindowFromPoint(pmouse->pt);
             IAccessible *TopContainerView = GetTopContainerView(hwnd);
 
@@ -503,11 +505,18 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 }
                 else
                 {
-                    ExecuteCommand(IDC_CLOSE_TAB);
+                   std::thread th([]() {
+                       SendKey(VK_LBUTTON);
+                       Sleep(50);
+                       ExecuteCommand(IDC_CLOSE_TAB);
+                   });
+                   th.detach();
                     //ExecuteCommand(IDC_SELECT_PREVIOUS_TAB, hwnd);
                     //ExecuteCommand(IDC_CLOSE_TAB, hwnd);
                 }
+                return 1;
             }
+           }
         }
         //EditByJN20220405
 
