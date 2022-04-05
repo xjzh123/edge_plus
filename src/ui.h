@@ -507,9 +507,9 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 {
                    std::thread th([]() {
                        //SendKey(VK_LBUTTON);
-                       mouse_event(MOUSEEVENTF_LEFTDOWN);
+                       mouse_event(MOUSEEVENTF_LEFTDOWN,pmouse->pt.x(),pmouse->pt.y());
                        Sleep(10);
-                       mouse_event(MOUSEEVENTF_LEFTUP);
+                       mouse_event(MOUSEEVENTF_LEFTUP,pmouse->pt.x(),pmouse->pt.y());
                        Sleep(50);
                        ExecuteCommand(IDC_CLOSE_TAB);
                    });
