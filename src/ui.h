@@ -506,7 +506,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 else
                 {
                    std::thread th([]() {
-                       SendKey(VK_LBUTTON);
+                       SendKeys(VK_LBUTTON);
                        Sleep(50);
                        ExecuteCommand(IDC_CLOSE_TAB);
                    });
