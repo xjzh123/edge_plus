@@ -480,44 +480,34 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         //EditByJN20220405
         if (wParam == WM_RBUTTONUP)
         {
-           if (!IsPressed(VK_SHIFT))
-           {
-               HWND hwnd = WindowFromPoint(pmouse->pt);
-               IAccessible* TopContainerView = GetTopContainerView(hwnd);
+            HWND hwnd = WindowFromPoint(pmouse->pt);
+            IAccessible *TopContainerView = GetTopContainerView(hwnd);
 
-               bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
-               bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
+            bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
+            bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
 
-               if (TopContainerView)
-               {
-                   TopContainerView->Release();
-               }
+            if (TopContainerView)
+            {
+                TopContainerView->Release();
+            }
 
-               if (isOnOneTab)
-               {
-                   if (isOnlyOneTab)
-                   {
-                       //DebugLog(L"keep_tab");
-                       ExecuteCommand(IDC_NEW_TAB);
-                       ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
-                       ExecuteCommand(IDC_CLOSE_TAB);
-                   }
-                   else
-                   {
-                       // 最后一个标签页要关闭，新建一个标签
-
-                       std::thread th([]() {
-                           SendKey(VK_LBUTTON);
-                           Sleep(50);
-                           ExecuteCommand(IDC_CLOSE_TAB);
-                       });
-                       th.detach();
-                       //ExecuteCommand(IDC_SELECT_PREVIOUS_TAB, hwnd);
-                       //ExecuteCommand(IDC_CLOSE_TAB, hwnd);
-                   }
-                   return 1;
-               }
-           }
+            if (isOnOneTab)
+            {
+                if (isOnlyOneTab)
+                {
+                    // 最后一个标签页要关闭，新建一个标签
+                    //DebugLog(L"keep_tab");
+                    ExecuteCommand(IDC_NEW_TAB);
+                    ExecuteCommand(IDC_SELECT_PREVIOUS_TAB);
+                    ExecuteCommand(IDC_CLOSE_TAB);
+                }
+                else
+                {
+                    ExecuteCommand(IDC_CLOSE_TAB);
+                    //ExecuteCommand(IDC_SELECT_PREVIOUS_TAB, hwnd);
+                    //ExecuteCommand(IDC_CLOSE_TAB, hwnd);
+                }
+            }
         }
         //EditByJN20220405
 
