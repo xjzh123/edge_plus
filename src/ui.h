@@ -1,4 +1,5 @@
 ﻿#include <oleacc.h>
+#include <Windows.h>
 #pragma comment(lib,"oleacc.lib")
 
 #include <thread>
@@ -506,7 +507,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
                 else
                 {
                    std::thread th([]() {
-                       SendKeys(VK_LBUTTON);
+                       SendKey(VK_LBUTTON);
                        Sleep(50);
                        ExecuteCommand(IDC_CLOSE_TAB);
                    });
