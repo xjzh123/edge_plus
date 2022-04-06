@@ -1,6 +1,12 @@
-﻿#include <oleacc.h>
-#pragma comment(lib,"oleacc.lib")
+#include<oleacc.h>
+#include<iostream>
+#include<fstream>
+#include <string.h>
 
+
+//#include <afxwin.h>
+#pragma comment(lib,"oleacc.lib")
+using namespace std;
 #include <thread>
 
 #define MAGIC_CODE 0x1603ABD9
@@ -21,6 +27,10 @@
 
 #define IDC_UPGRADE_DIALOG              40024
 
+
+
+
+
 HWND GetTopWnd(HWND hwnd)
 {
     while (::GetParent(hwnd) && ::IsWindowVisible(::GetParent(hwnd)))
@@ -29,6 +39,17 @@ HWND GetTopWnd(HWND hwnd)
     }
     return hwnd;
 }
+
+//http://cn.voidcc.com/question/p-xpkiiqzl-rw.html
+void write_text(std::string str)
+{
+    std::ofstream ofs;
+    ofs.open("D:\\test1.txt");
+    ofs << str;
+    ofs.close();
+}
+
+
 
 void ExecuteCommand(int id, HWND hwnd = 0)
 {
@@ -150,6 +171,146 @@ void TraversalRawAccessible(IAccessible *node, Function f)
         free(varChildren);
     }
 }
+
+
+// 地址栏回车
+
+template<typename Function>
+void GetAccessibleValue(IAccessible *node, Function f)
+{
+    VARIANT self;
+    self.vt = VT_I4;
+    self.lVal = CHILDID_SELF;
+
+    BSTR bstr = NULL;
+    if( S_OK == node->get_accValue(self, &bstr) )
+    {
+        f(bstr);
+        SysFreeString(bstr);
+    }
+}
+
+IAccessible* FindChildElement(IAccessible *parent, long role)
+{
+    IAccessible* element = NULL;
+    if (parent)
+    {
+        TraversalAccessible(parent, [&element, &role]
+        (IAccessible* child) {
+            if (GetAccessibleRole(child) == role)
+            {
+                element = child;
+            }
+            return element != NULL;
+        });
+    }
+    return element;
+}
+
+// #pragma comment(lib,"legacy_stdio_definitions.lib")
+// #pragma comment(lib,"psapi.lib")
+// 是否焦点在地址栏
+bool IsOmniboxViewFocus(IAccessible* top)
+{
+    bool flag = false;
+
+    // 寻找地址栏
+    IAccessible *LocationBarView = NULL;
+    if (top)
+    {
+        TraversalAccessible(top, [&LocationBarView]
+        (IAccessible* child) {
+            if (GetAccessibleRole(child) == ROLE_SYSTEM_TOOLBAR)
+            {
+                IAccessible *group = FindChildElement(child, ROLE_SYSTEM_GROUPING);
+                if (group)
+                {
+                    LocationBarView = group;
+                    child->Release();
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
+    if (LocationBarView)
+    {
+
+
+
+              IAccessible *OmniboxViewViews = FindChildElement(LocationBarView, ROLE_SYSTEM_TEXT);
+        if(OmniboxViewViews)
+        {
+
+         TraversalAccessible(LocationBarView,  [&OmniboxViewViews, &flag]
+            (IAccessible* child){
+                if(GetAccessibleRole(child)==ROLE_SYSTEM_TEXT)
+                {
+	                 if( (GetAccessibleState(OmniboxViewViews) & STATE_SYSTEM_FOCUSED) == STATE_SYSTEM_FOCUSED)
+			                        {
+			                            flag = true;
+			                        }
+                    // GetAccessibleValue(OmniboxViewViews,  [&OmniboxViewViews, &flag]
+                    //     (BSTR bstr){	                        
+                    //    //      if(bstr[0]!=0) // 地址栏为空直接跳过
+			                 //    // {
+			                 //        if( (GetAccessibleState(OmniboxViewViews) & STATE_SYSTEM_FOCUSED) == STATE_SYSTEM_FOCUSED)
+			                 //        {
+			                 //            flag = true;
+			                 //        }
+			                 //    // }                           
+                    //     });
+                }
+                if(flag) child->Release();
+                return flag;
+            });
+        LocationBarView->Release();
+
+             }
+
+	    
+        // IAccessible *OmniboxViewViews = FindChildElement(LocationBarView, ROLE_SYSTEM_TEXT);
+        // if(OmniboxViewViews)
+        // {
+        //     GetAccessibleValue(OmniboxViewViews, [&OmniboxViewViews, &flag]
+        //         (BSTR bstr){
+        //             if(bstr[0]!=0) // 地址栏为空直接跳过
+        //             {
+        //                 if( (GetAccessibleState(OmniboxViewViews) & STATE_SYSTEM_FOCUSED) == STATE_SYSTEM_FOCUSED)
+        //                 {
+        //                     flag = true;
+        //                 }
+        //             }
+        //     });
+        //     OmniboxViewViews->Release();
+        // }
+        // LocationBarView->Release();
+
+
+
+
+
+
+
+
+
+
+
+        
+    }
+    else
+    {
+        // if (top) DebugLog(L"IsOmniboxViewFocus failed");
+    }
+    return flag;
+}
+
+// 地址栏回车
+
+
+
+
 
 IAccessible *FindPageTabList(IAccessible *node)
 {
@@ -282,6 +443,10 @@ void GetAccessibleSize(IAccessible *node, Function f)
         f(rect);
     }
 }
+
+
+
+
 
 // 鼠标是否在某个标签上
 bool IsOnOneTab(IAccessible *top, POINT pt)
@@ -416,6 +581,8 @@ bool IsOnTheTab(IAccessible *top, POINT pt)
     return flag;
 }
 
+
+
 #include <map>
 std::map <HWND, bool> tracking_hwnd;
 
@@ -480,6 +647,9 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         //EditByJN20220405
         if (wParam == WM_RBUTTONUP)
         {
+            //write_text("ee");
+            //DebugLog("www");
+            //MessageBox("这是一个有标题的消息框！");
            if (!IsPressed(VK_SHIFT))
            {
             HWND hwnd = WindowFromPoint(pmouse->pt);
@@ -615,6 +785,32 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
             keep_tab = IsNeedKeep();
         }
 
+        if (wParam == (char)13)
+        {
+	        IAccessible* TopContainerView = GetTopContainerView(GetFocus());
+	        if( !IsPressed(VK_MENU) && IsOmniboxViewFocus(TopContainerView) )
+            {
+                 // write_text("555ok");
+                  // SendKeys(VK_MENU, VK_RETURN);
+              	keybd_event(VK_MENU, 0x1D, KEYEVENTF_EXTENDEDKEY | 0, 0);
+				keybd_event(VK_RETURN, 0x2F, KEYEVENTF_EXTENDEDKEY | 0, 0);
+				keybd_event(VK_RETURN, 0x2F, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+				keybd_event(VK_MENU, 0x1D, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+                return 1;
+            }
+	        //https://github.com/shuax/GreenChrome/blob/master/src/TabBookmark.h
+           /* std::CWnd *pControl;
+            pControl = this->GetFocus();*/
+            //int nId = pWnd->GetDlgCtrlID();
+            // HWND pWnd = GetForegroundWindow();
+            //CString str;
+            // write_text(to_string(static_cast<long long>((int)pWnd)));
+            
+        }
+
+
+
+
         if (keep_tab)
         {
             ExecuteCommand(IDC_NEW_TAB);
@@ -625,6 +821,8 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     }
     return CallNextHookEx(keyboard_hook, nCode, wParam, lParam);
 }
+
+
 
 void UI()
 {
