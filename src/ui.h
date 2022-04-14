@@ -3,6 +3,10 @@
 #include<fstream>
 #include <string.h>
 
+// #include <stdio.h>
+// #include <assert.h>
+// #include <windows.h>
+
 
 //#include <afxwin.h>
 #pragma comment(lib,"oleacc.lib")
@@ -582,6 +586,61 @@ bool IsOnTheTab(IAccessible *top, POINT pt)
 }
 
 
+//EditByJN20220413   鼠标是否在Pane上
+IAccessible *FindPagePane(IAccessible *node)
+{
+    IAccessible *PageTabList = NULL;
+    if (node)
+    {
+        TraversalAccessible(node, [&]
+                            (IAccessible * child)
+        {
+            long role = GetAccessibleRole(child);
+            if (role == ROLE_SYSTEM_PAGETAB)
+            {
+                PageTabList = child;
+            }
+            else if (role == ROLE_SYSTEM_PANE || role == ROLE_SYSTEM_TOOLBAR)
+            {
+                PageTabList = FindPageTab(child);
+            }
+            return PageTabList;
+            
+        });
+    }
+    return PageTabList;
+}
+
+
+
+bool IsOnThePane(IAccessible* top, POINT pt)
+{
+	return false;
+    bool flag = false;
+    IAccessible *PageTabList = FindPageTab(top);
+    if (PageTabList)
+    {
+        GetAccessibleSize(PageTabList, [&flag, &pt]
+                          (RECT rect)
+        {
+            if (PtInRect(&rect, pt))
+            {
+                flag = true;
+            }
+        });
+        PageTabList->Release();
+    }
+    else
+    {
+        // if (top) DebugLog(L"IsOnTheTab failed");
+    }
+    return flag;
+}
+//EditByJN20220413    鼠标是否在Pane上
+
+
+
+
 
 #include <map>
 std::map <HWND, bool> tracking_hwnd;
@@ -657,11 +716,55 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
             bool isOnOneTab = IsOnOneTab(TopContainerView, pmouse->pt);
             bool isOnlyOneTab = IsOnlyOneTab(TopContainerView);
-
+            bool isOnTheTab = IsOnTheTab(TopContainerView, pmouse->pt);
             if (TopContainerView)
             {
                 TopContainerView->Release();
             }
+            
+
+			//EditByJN20220413    鼠标在Pane上右击打开新标签页
+
+
+
+
+        
+
+            if (isOnTheTab && !isOnOneTab)
+            {
+	            	std::thread th([]() {
+                       //SendKey(VK_LBUTTON);
+                       ExecuteCommand(IDC_NEW_TAB);
+						// char *url,*pData;
+						// size_t length;
+						// OpenClipboard(NULL);
+						// HANDLE hData=GetClipboardData(CF_TEXT);
+						// assert(hData!=NULL);
+						// length=GlobalSize(hData);
+						// url=(char*)malloc(length+1);
+						// pData=(char*)GlobalLock(hData);
+						// strcpy(url,pData);
+						// GlobalUnlock(hData);
+						// CloseClipboard();
+						// url[length]=0;
+						// printf("%s\n",url);
+                        Sleep(50);
+						keybd_event(VK_CONTROL, 0x1D, KEYEVENTF_EXTENDEDKEY | 0, 0);
+						keybd_event('V', 0x2F, KEYEVENTF_EXTENDEDKEY | 0, 0);
+						keybd_event('V', 0x2F, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+						keybd_event(VK_CONTROL, 0x1D, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+
+                        Sleep(50);
+						keybd_event(VK_CONTROL, 0x1D, KEYEVENTF_EXTENDEDKEY | 0, 0);
+						keybd_event('A', 0x2F, KEYEVENTF_EXTENDEDKEY | 0, 0);
+						keybd_event('A', 0x2F, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+						keybd_event(VK_CONTROL, 0x1D, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);	
+                   });
+                   th.detach();
+                   return 1;             
+            }
+            //EditByJN20220413    鼠标在Pane上右击打开新标签页
+
 
             if (isOnOneTab)
             {
