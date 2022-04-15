@@ -639,7 +639,63 @@ bool IsOnThePane(IAccessible* top, POINT pt)
 //EditByJN20220413    鼠标是否在Pane上
 
 
+//EditByJN20220414 
+template<typename Function>
+void GetAccessibleName(IAccessible *node, Function f)
+{
+    VARIANT self;
+    self.vt = VT_I4;
+    self.lVal = CHILDID_SELF;
 
+    BSTR bstr = NULL;
+    if( S_OK == node->get_accName(self, &bstr) )
+    {
+        f(bstr);
+        // SysFreeString(bstr);
+    }
+}
+
+bool IsBlankTab(IAccessible *top)
+{
+    bool flag = false;
+    IAccessible *PageTabList = FindPageTabList(top);
+    if (PageTabList)
+    {
+        IAccessible *PageTab = FindPageTab(PageTabList);
+        if(PageTab)
+        {
+            IAccessible *PageTabPane = GetParentElement(PageTab);
+            if (PageTabPane)
+            {
+                TraversalAccessible(PageTabPane, [&flag]
+                                    (IAccessible * child)
+                {
+
+	                    if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED) // 只遍历可见节点
+                        {
+                        GetAccessibleName(child, [&flag]
+                            (BSTR bstr){
+
+                                if(wcscmp(bstr, L"新标签页")==0)
+                                {  
+                                    flag = true;
+                                }
+                        });
+
+                        }
+                    if (flag) child->Release();
+                    return flag;
+                });
+                PageTabPane->Release();
+            }
+            PageTab->Release();
+        }
+        PageTabList->Release();
+    }
+
+    return flag;
+}
+//EditByJN20220414 
 
 
 #include <map>
@@ -891,9 +947,20 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         if (wParam == (char)13)
         {
 	        IAccessible* TopContainerView = GetTopContainerView(GetFocus());
-	        if( !IsPressed(VK_MENU) && IsOmniboxViewFocus(TopContainerView) )
+	        IAccessible* TopContainerView1 = GetTopContainerView(GetForegroundWindow());
+            bool isFocus = IsOmniboxViewFocus(TopContainerView);
+            bool isBlank = IsBlankTab(TopContainerView1);
+			if (TopContainerView)
+		    {
+		        TopContainerView->Release();
+		    }
+		    if (TopContainerView1)
+		    {
+		        TopContainerView1->Release();
+		    }
+	        
+	        if( !IsPressed(VK_MENU) && isFocus && !isBlank)
             {
-                 // write_text("555ok");
                   // SendKeys(VK_MENU, VK_RETURN);
               	keybd_event(VK_MENU, 0x1D, KEYEVENTF_EXTENDEDKEY | 0, 0);
 				keybd_event(VK_RETURN, 0x2F, KEYEVENTF_EXTENDEDKEY | 0, 0);
