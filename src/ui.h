@@ -1,12 +1,12 @@
 #include<oleacc.h>
 #include<iostream>
 #include<fstream>
-#include <string.h>
+#include <string>
 
 // #include <stdio.h>
 // #include <assert.h>
 // #include <windows.h>
-
+#include <comdef.h>
 
 //#include <afxwin.h>
 #pragma comment(lib,"oleacc.lib")
@@ -655,6 +655,24 @@ void GetAccessibleName(IAccessible *node, Function f)
     }
 }
 
+
+//转化std::wstring为std::string
+std::string stows(std::wstring& ws)
+{
+	std::string curLocale = setlocale(LC_ALL, NULL); // curLocale = "C";
+	setlocale(LC_ALL, "chs");
+	const wchar_t* _Source = ws.c_str();
+	size_t _Dsize = 2 * ws.size() + 1;
+	char *_Dest = new char[_Dsize];
+	memset(_Dest, 0, _Dsize);
+	wcstombs(_Dest, _Source, _Dsize);
+	std::string result = _Dest;
+	delete[]_Dest;
+	setlocale(LC_ALL, curLocale.c_str());
+	return result;
+}
+
+
 bool IsBlankTab(IAccessible *top)
 {
     bool flag = false;
@@ -674,12 +692,12 @@ bool IsBlankTab(IAccessible *top)
 	                    if (GetAccessibleState(child) & STATE_SYSTEM_SELECTED) // 只遍历可见节点
                         {
                         GetAccessibleName(child, [&flag]
-                            (BSTR bstr){
-
-                                if(wcscmp(bstr, L"新标签页")==0)
-                                {  
-                                    flag = true;
-                                }
+                            (BSTR bstr){	                            
+                            std::wstring bstr_String = _bstr_t(bstr, false);  //转化BSTR为wstring
+						    if(!(stows(bstr_String).find("标签页") == string::npos))//判断当前标签页标题是否包含标签页文字
+						    {
+							    flag = true;
+						    }
                         });
 
                         }
