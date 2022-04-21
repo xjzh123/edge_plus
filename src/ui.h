@@ -402,29 +402,7 @@ IAccessible *GetTopContainerView(HWND hwnd)
     return TopContainerView;
 }
 
-IAccessible *FindChildElement(IAccessible *parent, long role, int skipcount = 0)
-{
-    IAccessible *element = NULL;
-    if (parent)
-    {
-        int i = 0;
-        TraversalAccessible(parent, [&element, &role, &i, &skipcount]
-                            (IAccessible * child)
-        {
-            //DebugLog(L"当前 %d,%d", i, skipcount);
-            if (GetAccessibleRole(child) == role)
-            {
-                if (i == skipcount)
-                {
-                    element = child;
-                }
-                i++;
-            }
-            return element != NULL;
-        });
-    }
-    return element;
-}
+
 
 template<typename Function>
 void GetAccessibleSize(IAccessible *node, Function f)
@@ -716,6 +694,83 @@ bool IsBlankTab(IAccessible *top)
 //EditByJN20220414 
 
 
+
+
+bool IsOnOneBookmarkInner(IAccessible* parent, POINT pt)
+{
+    bool flag = false;
+
+    // 寻找书签栏
+    IAccessible *BookmarkBarView = NULL;
+    if (parent)
+    {
+        TraversalAccessible(parent, [&BookmarkBarView]
+        (IAccessible* child) {
+            if (GetAccessibleRole(child) == ROLE_SYSTEM_TOOLBAR)
+            {
+                IAccessible *group = FindChildElement(child, ROLE_SYSTEM_GROUPING);
+                if (group==NULL)
+                {
+                    BookmarkBarView = child;
+                    return true;
+                }
+                group->Release();
+            }
+            return false;
+        });
+    }
+
+    if(BookmarkBarView)
+    {
+        TraversalAccessible(BookmarkBarView, [&flag, &pt]
+            (IAccessible* child){
+	                
+                    GetAccessibleSize(child, [&flag, &pt]
+                        (RECT rect){
+                            if(PtInRect(&rect, pt))
+                            {
+                                flag = true;
+                            }
+                        });
+ 
+                if(flag) child->Release();
+                return flag;
+            });
+        BookmarkBarView->Release();
+    }
+    return flag;
+}
+
+
+
+// 是否点击书签栏
+bool IsOnOneBookmark(IAccessible* top, POINT pt)
+{
+    bool flag = false;
+    if(top)
+    {
+        // 开启了书签栏长显
+        if(IsOnOneBookmarkInner(top, pt)) return true;
+
+
+        // 未开启书签栏长显
+        IDispatch* dispatch = NULL;
+        if( S_OK == top->get_accParent(&dispatch) && dispatch)
+        {
+            IAccessible* parent = NULL;
+            if( S_OK == dispatch->QueryInterface(IID_IAccessible, (void**)&parent))
+            {
+                flag = IsOnOneBookmarkInner(parent, pt);
+                parent->Release();
+            }
+            dispatch->Release();
+        }
+    }
+    return flag;
+}
+
+
+
 #include <map>
 std::map <HWND, bool> tracking_hwnd;
 
@@ -723,7 +778,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
     static bool wheel_tab_ing = false;
     static bool right_close_tab_ing = false;
-
+    bool bookmark_new_tab = false;
     if (nCode != HC_ACTION)
     {
         return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
@@ -870,6 +925,34 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         }
         //EditByJN20220405
 
+
+
+
+ if(wParam==WM_LBUTTONUP)
+        {	        
+            IAccessible* TopContainerView = GetTopContainerView(WindowFromPoint(pmouse->pt));
+	        bool isOnTheBookmark = IsOnOneBookmark(TopContainerView, pmouse->pt);
+	        IAccessible* TopContainerView1 = GetTopContainerView(GetForegroundWindow());
+	        bool isBlank = IsBlankTab(TopContainerView1);
+	        if (TopContainerView)
+	        {
+	            TopContainerView->Release();
+	        }
+	        if (TopContainerView1)
+		    {
+		        TopContainerView1->Release();
+		    }
+
+		    
+			if(isOnTheBookmark && !isBlank)
+			{
+				bookmark_new_tab = true;
+			}
+        }
+
+
+
+
         if (wParam == WM_LBUTTONDBLCLK)
         {
             HWND hwnd = WindowFromPoint(pmouse->pt);
@@ -924,6 +1007,30 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
             }
         }
     }
+
+
+        if(bookmark_new_tab)
+    {
+            // ExecuteCommand(IDC_NEW_TAB);
+            // 发送中键消息，新建标签，前台
+            // SendKeys(VK_MBUTTON, VK_SHIFT);
+
+
+          std::thread th([]() {
+			keybd_event(VK_SHIFT, 0x1D, KEYEVENTF_EXTENDEDKEY | 0, 0);
+           	mouse_event(MOUSEEVENTF_MIDDLEDOWN,0,0,0,0);
+            Sleep(10);
+            mouse_event(MOUSEEVENTF_MIDDLEUP,0,0,0,0);
+            Sleep(100);
+			keybd_event(VK_SHIFT, 0x1D, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+           });
+           th.detach();
+ 
+			return 1;
+    }
+
+
+    
 next:
     return CallNextHookEx(mouse_hook, nCode, wParam, lParam);
 }
