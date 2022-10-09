@@ -12,5 +12,5 @@
 # 获取
 下载edge_plus.zip
 # 安装
-dll放入Edge目录（C:\Program Files (x86)\Microsoft\Edge\Application）即可
+dll放入Edge目录（C:\Program Files (x86)\Microsoft\Edge\Application）然后重启浏览器（或重启电脑）即可
 
