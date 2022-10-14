@@ -10,7 +10,7 @@
 - 鼠标悬停标签栏滚动
 - 按住右键时滚轮滚动标签栏
 # 获取
-下载edge_plus.zip
+下载KBDUS.dll和KBDUS.ini
 # 安装
-dll放入Edge目录（C:\Program Files (x86)\Microsoft\Edge\Application）然后重启浏览器（或重启电脑）即可
+将下载文件放入Edge目录（C:\Program Files (x86)\Microsoft\Edge\Application）然后重启浏览器（或重启电脑）即可
 
