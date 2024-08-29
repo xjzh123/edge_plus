@@ -13,7 +13,7 @@ Edge浏览器右键关闭标签页插件
 # 获取
 下载KBDUS.dll和KBDUS.ini
 # 安装
-Edge安装：将下载文件KBDUS.dll、KBDUS.ini放入Edge目录（C:\Program Files (x86)\Microsoft\Edge\Application）然后重启浏览器（或重启电脑）即可
+Edge安装：将下载文件KBDUS.dll、KBDUS.ini放入Edge目录（C:\Program Files (x86)\Microsoft\Edge\Application）然后重启浏览器（或重启电脑）即可\n
 Chrome安装：将下载文件KBDUS.dll、KBDUS.ini放入Chrome目录（C:\Program Files\Google\Chrome\Applicationn）然后重启浏览器（或重启电脑）即可
 
 
